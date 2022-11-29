@@ -9,7 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, globalShortcut } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, globalShortcut, nativeImage, IpcMainEvent, TouchBar } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { resolveHtmlPath } from './util';
@@ -84,12 +84,21 @@ const createWindow = async () => {
     return path.join(RESOURCES_PATH, ...paths);
   };
 
+  const D_File = path.join(app.getAppPath(), "bounds.json");
+  let dimensions = null;
+
+  try {
+    dimensions = JSON.parse(fs.readFileSync(D_File, "utf-8"))
+  } catch (error) {
+
+  }
+
   mainWindow = new BrowserWindow({
     show: false,
     minWidth: 1000,
     minHeight: 800,
-    width: 1000,
-    height: 800,
+    width: dimensions ? dimensions.bounds.width : 1000,
+    height: dimensions ? dimensions.bounds.height: 800,
     center: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
@@ -98,6 +107,8 @@ const createWindow = async () => {
         : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
   });
+
+  mainWindow.setMenu(null);
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
 
@@ -111,6 +122,13 @@ const createWindow = async () => {
       mainWindow.show();
     }
   });
+
+  mainWindow.on("close", () => {
+    const dimensions = {
+      bounds: mainWindow?.getBounds()
+    }
+    fs.writeFileSync(D_File, JSON.stringify(dimensions))
+  })
 
   mainWindow.on('closed', () => {
     mainWindow = null;
@@ -139,30 +157,58 @@ app.on('window-all-closed', () => {
   }
 });
 
+const mediaChanged = (event: IpcMainEvent, isPlaying: boolean) => {
+  mainWindow?.setThumbarButtons([{
+    tooltip: "previous",
+    icon: nativeImage.createFromPath("../../assets/previous.png"),
+    click: () => {
+      mainWindow?.webContents.send("playNext");
+    }
+  }, {
+    tooltip: "pause",
+    icon: isPlaying ? nativeImage.createFromPath("../../assets/pause.jpeg") : nativeImage.createFromPath("../../assets/play.png"),
+    click: () => {
+      mainWindow?.webContents.send("togglePlay")
+    }
+  }, {
+    tooltip: "next",
+    icon: nativeImage.createFromPath("../../assets/next.png"),
+    click: () => {
+      mainWindow?.webContents.send("playPrevious")
+    }
+  }])
+}
+
+
 app
   .whenReady()
   .then(() => {
-    app.setAccessibilitySupportEnabled(true)
     ipcMain.handle("getMedia", getMedia);
-    globalShortcut.register(process.platform === "darwin" ? "Alt+." : "Alt+.", () => {
+    ipcMain.on("mediaChanged", mediaChanged);
+
+    globalShortcut.register("Alt+.", () => {
       mainWindow?.webContents.send("playNext")
     })
-    globalShortcut.register(process.platform === "darwin" ? "Alt+," : "Alt+.", () => {
+    globalShortcut.register("Alt+,", () => {
       mainWindow?.webContents.send("playPrevious")
     })
-    globalShortcut.register(process.platform === "darwin" ? "Alt+/" : "Alt+/", () => {
+    globalShortcut.register("Alt+/", () => {
       mainWindow?.webContents.send("togglePlay")
     })
     globalShortcut.register("MediaNextTrack", () => {
-      console.log("triggered")
       mainWindow?.webContents.send("playNext")
     })
     globalShortcut.register("MediaPlayPause", () => {
-      console.log("triggered")
       mainWindow?.webContents.send("togglePlay")
     })
     globalShortcut.register("MediaPreviousTrack", () => {
       mainWindow?.webContents.send("playPrevious")
+    })
+    globalShortcut.register("Alt+=", () => {
+      mainWindow?.webContents.send("increaseVolume")
+    })
+    globalShortcut.register("Alt+-", () => {
+      mainWindow?.webContents.send("decreaseVolume")
     })
     createWindow();
     app.on('activate', () => {
