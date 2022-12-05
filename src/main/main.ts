@@ -84,7 +84,7 @@ const createWindow = async () => {
     return path.join(RESOURCES_PATH, ...paths);
   };
 
-  const D_File = path.join(app.getAppPath(), "bounds.json");
+  const D_File = path.join(RESOURCES_PATH, "bounds.json");
   let dimensions = null;
 
   try {

@@ -389,9 +389,7 @@ const Home = () => {
   };
 
   const onTimeUpdate = (e) => {
-    document.getElementById('progress-button').style.left = `${
-      (e.target.currentTime * 100) / e.target.duration
-    }%`;
+    document.getElementById('progress-button').style.left = `calc(${(e.target.currentTime * 100) / e.target.duration}% - 5px)`;
     document.getElementById('progress-fill').style.width = `${
       (e.target.currentTime * 100) / e.target.duration
     }%`;
@@ -583,9 +581,6 @@ const Home = () => {
       } else {
         mediaPlayer.pause();
         isProgressBarFocused = true;
-        document.getElementById(
-          'progress-button'
-        ).style.left = `${progressOffsetX}px`;
         setCurrentTime(e);
         setPlaying(false);
       }
