@@ -25,6 +25,7 @@ import {
   MdAudiotrack,
   MdOutlineMusicVideo,
   MdBookmarkAdd,
+  MdTimer
 } from 'react-icons/md';
 import { useDropzone } from 'react-dropzone';
 
@@ -196,6 +197,7 @@ const StyledDropzone = ({
   );
 };
 
+let buffer = [];
 let isAudioBarFocused = false;
 let isProgressBarFocused = false;
 let audioOffsetX = 0;
@@ -204,6 +206,7 @@ let progressClientX = 0;
 let progressOffsetX = 0;
 let audioValue = 0;
 let progressValue = 0;
+let turnOffAfterFinished = null;
 
 const Home = () => {
   const [playlists, setPlaylists] = useState([]);
@@ -216,9 +219,12 @@ const Home = () => {
     isShuffle: false,
     repeat: 'none',
     audioValue: 0.85,
+    timer: Infinity
   });
   const [isPlaying, setPlaying] = useState(false);
   const [isAddingTimeMark, setAddingTimeMark] = useState(false);
+  const [isTiming, setTiming] = useState(false);
+  const [isLoading, setLoading] = useState(false);
   const [media, setMedia] = useState();
   const [metadata, setMetadata] = useState();
   const [hasLauched, setLauched] = useState(false);
@@ -240,15 +246,20 @@ const Home = () => {
   );
   const playlistRef = useRef();
   const nextIndexRef = useRef();
+  const playlistsRef = useRef();
+  const configRef = useRef();
+  playlistsRef.current = playlists;
   playlistRef.current = shuffledPlaylist;
   nextIndexRef.current = nextIndex;
+  configRef.current = playConfig;
 
   useEffect(() => {
     setMediaPlayer(document.getElementById('media-player'));
     getPlaylists();
     if (localStorage.getItem('user-config')) {
       const config = JSON.parse(localStorage.getItem('user-config'));
-      setPlayConfig(config);
+      console.log(config);
+      setPlayConfig({ ...config, timer: Infinity });
       document.getElementById('media-player').volume = config.audioValue;
       document.getElementById('audio-button').style.left = `${
         config.audioValue * 100
@@ -257,20 +268,30 @@ const Home = () => {
         config.audioValue * 100
       }%`;
     }
-    document.getElementById('media-player').onwebkitfullscreenchange =
-      onExitFullscreen;
+    document.getElementById('media-player').onwebkitfullscreenchange = onExitFullscreen;
+    window.electron.onMediaMetadata((e, m) => setMetadata(m))
+    window.electron.onMediaBuffer((e, data) => {
+      if(data?.ended){
+        let blob = new Blob(buffer);
+        let url = URL.createObjectURL(blob);
+        document.getElementById('media-player').src = url;
+        buffer = [];
+      }else{
+        buffer.push(data.buffer);
+      }
+    })
     window.electron.onRequestPlayNext((e) => {
       playNext(playlistRef.current, nextIndexRef.current, true);
     });
     window.electron.onRequestPlayPrevious((e) => {
       playNext(playlistRef.current, nextIndexRef.current - 2, true);
     });
-    window.electron.onRequestPause((e) => {
-      const mediaPlayer = document.getElementById('media-player');
-      if (mediaPlayer.paused) {
-        mediaPlayer.play();
+    window.electron.onTogglePlay((e) => {
+      const player = document.getElementById('media-player');
+      if (player.paused) {
+        player.play();
       } else {
-        mediaPlayer.pause();
+        player.pause();
       }
     });
     window.electron.onDecreaseVolume((e) => {
@@ -281,12 +302,52 @@ const Home = () => {
       const media = document.getElementById('media-player');
       media.volume = Math.min(media.volume + 0.1, 1);
     });
+    window.electron.chooseMedia((e, index) => {
+      playNext(playlistRef.current, index, true)
+    })
+    window.electron.changePlaylist((e, index) => {
+      setPlaylist(playlistsRef.current[index])
+    })
+    window.electron.seekTo((e, time) => {
+      const player = document.getElementById('media-player')
+      if(player){
+        player.currentTime = time
+      }
+    })
+    window.electron.changeTimer((e, type) => {
+      if(type === "increase"){
+        if(configRef.current.timer === Infinity){
+          setPlayConfig({...configRef.current, timer: 1 })
+        }else{
+          setPlayConfig({...configRef.current, timer: configRef.current.timer + 1 })
+        }
+      }else{
+        setPlayConfig({...configRef.current, timer: Infinity})
+      }
+    })
+    window.electron.requestTurnOff((e, state) => {
+      if(configRef.current.timer === Infinity){
+        window.electron.turnOff(state);
+      }else{
+        turnOffAfterFinished = state;
+      }
+    })
+    window.electron.requestTimeUpdate((e) => {
+      const player = document.getElementById("media-player");
+      window.electron.onTimeUpdate(player.currentTime)
+    })
     navigator.mediaSession.setActionHandler('seekto', (data) => {
       const player = document.getElementById('media-player');
       if (player.src !== null) {
         player.currentTime = data.seekTime;
       }
     });
+    navigator.mediaSession.setActionHandler('nexttrack', () => {
+      playNext(playlistRef.current, nextIndexRef.current)
+    })
+    navigator.mediaSession.setActionHandler('previoustrack', () => {
+      playNext(playlistRef.current, nextIndexRef.current - 1)
+    })
     setLauched(true);
   }, []);
 
@@ -294,6 +355,7 @@ const Home = () => {
     if (hasLauched) {
       localStorage.setItem('user-config', JSON.stringify(playConfig));
     }
+    window.electron.getConfig(playConfig)
   }, [playConfig]);
 
   useEffect(() => {
@@ -321,6 +383,7 @@ const Home = () => {
   }, [playlist]);
 
   useEffect(() => {
+    window.electron.getPlaylist(shuffledPlaylist)
     if (shuffledPlaylist?.medias?.length > 0 && !isPlaying) {
       playNext(shuffledPlaylist, 0);
     }
@@ -336,8 +399,9 @@ const Home = () => {
     if (metadata && metadata.picture?.length > 0) {
       const blob = new Blob([metadata.picture[0].data]);
       document.getElementById('preview-mp3').src = URL.createObjectURL(blob);
+      document.getElementById('preview-mp3').style.display = 'block';
     } else {
-      document.getElementById('preview-mp3').src = '';
+      document.getElementById('preview-mp3').style.display = 'none';
     }
   }, [metadata]);
 
@@ -348,7 +412,7 @@ const Home = () => {
   }
 
   const updateScrollPosition = () => {
-    if (media) {
+    if (media && searchQuery.length === 0) {
       const index = shuffledPlaylist.medias
         .filter((m) => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
         .findIndex((m) => m.name === media.name);
@@ -399,18 +463,22 @@ const Home = () => {
   };
 
   const prepareMediaPlayer = async () => {
-    if (media) {
-      const { buffer, metadata } = await window.electron.getMedia(media.path);
-      setMetadata(metadata);
-      const blob = new Blob([buffer]);
-      const blobURL = URL.createObjectURL(blob);
-      mediaPlayer.src = blobURL;
+    if (media && !isLoading) {
+      setLoading(true);
+      window.electron.getMedia(media.path);
+      setLoading(false);
+      if(playConfig.timer !== Infinity ){
+        setPlayConfig({ ...playConfig, timer: playConfig.timer - 1 })
+      }
+      window.electron.getCurrentMedia(media)
     }
   };
 
   const getPlaylists = () => {
     if (localStorage.getItem('playlists')) {
-      setPlaylists(JSON.parse(localStorage.getItem('playlists')));
+      const pls = JSON.parse(localStorage.getItem('playlists'));
+      setPlaylists(pls);
+      window.electron.getPlaylists(pls);
     }
   };
 
@@ -452,7 +520,16 @@ const Home = () => {
   };
 
   const playNext = (playlist, index, forcePlayNext = false) => {
-    if (playlist.medias.length === 0) return;
+    if (playlist.medias.length === 0 || isLoading) return;
+
+    if (playConfig.timer === 0 && !forcePlayNext){
+      clearTimer()
+      return;
+    }
+
+    if(playConfig.timer > 0 && forcePlayNext){
+      clearTimer()
+    }
 
     if(isAddingTimeMark){
       setPlaying(false);
@@ -472,6 +549,15 @@ const Home = () => {
       setPlaying(false);
     }
   };
+
+  const clearTimer = () => {
+    setPlayConfig({ ...playConfig, timer: Infinity });
+    setTiming(false);
+    if(turnOffAfterFinished !== null){
+      window.electron.turnOff(turnOffAfterFinished);
+      turnOffAfterFinished = null;
+    }
+  }
 
   const shufflePlaylist = (playlist) => {
     let temp;
@@ -525,7 +611,7 @@ const Home = () => {
   const onDragButton = (e) => {
     if (isAudioBarFocused) {
       audioValue = Math.max(
-        Math.min(audioOffsetX + (e.clientX - audioClientX), 80),
+        Math.min(audioOffsetX + 5 + (e.clientX - audioClientX), 80),
         0
       );
       mediaPlayer.volume = audioValue / 80;
@@ -555,6 +641,7 @@ const Home = () => {
       0
     );
     mediaPlayer.currentTime = (mediaPlayer.duration * progressValue) / 100;
+    window.electron.onTimeUpdate(mediaPlayer.currentTime)
   };
 
   const onFocusProgressBar = (e) => {
@@ -666,18 +753,19 @@ const Home = () => {
     localStorage.setItem('playlists', JSON.stringify(playlists));
     setPlaylist(newPlaylist);
     setPlaylists(playlists);
+    setShuffledPlaylist({ ...shuffledPlaylist, medias: shuffledPlaylist.medias.filter(m => newPlaylist.medias.some(m2 => m.name === m2.name)) })
     if (media.name === mediaName) {
       nextMedia();
     }
   };
 
   const onPause = () => {
-    window.electron.mediaChanged(false);
+    window.electron.doAction(false);
     setPlaying(false);
   };
 
   const onPlay = () => {
-    window.electron.mediaChanged(true);
+    window.electron.doAction(true);
     setPlaying(true);
   };
 
@@ -728,6 +816,18 @@ const Home = () => {
 
   const toggleAddTimeMark = () => setAddingTimeMark(!isAddingTimeMark);
 
+  const toggleTimer = () => {
+    if(isTiming){
+      setTiming(false);
+      setPlayConfig({ ...playConfig, timer: Infinity });
+    }else{
+      setTiming(true);
+      const modal = document.getElementById("modal-container");
+      modal.style.opacity = 1;
+      modal.style.zIndex = 5;
+    }
+  };
+
   const onProgressBarMouseLeave = (e) => {
     if (media) {
       const progressPreview = document.getElementById('progress-preview');
@@ -735,21 +835,39 @@ const Home = () => {
     }
   };
 
-  const onInputLabel = (e) =>
-    setStampInfo({ ...stampInfo, label: e.target.value });
+  const onInput = (e) => {
+    if(isAddingTimeMark){
+      setStampInfo({ ...stampInfo, label: e.target.value });
+    }
+  }
 
-  const onSubmitStamp = (e) => {
-    if (e.key === 'Enter' && media && stampInfo.label.length > 0) {
-      saveStampInfo()
+  const onSubmit = (e) => {
+    if (e.key === 'Enter') {
+      if(isAddingTimeMark && media && stampInfo.label.length > 0){
+        saveStampInfo()
+      }
+      if(isTiming){
+        try {
+          setPlayConfig({ ...playConfig, timer: parseInt(e.target.value) })
+          onBackdropClick(false)
+        } catch (error) {
+          setPlayConfig({ ...playConfig, timer: Infinity })
+          onBackdropClick()
+        }
+      }
     }
   };
 
-  const onBackdropClick = (e) => {
+  const onBackdropClick = (isInfinity) => {
     const modal = document.getElementById('modal-container');
     modal.style.opacity = 0;
     setTimeout(() => {
       modal.style.zIndex = -1;
+      document.getElementById("ts-label-input").value = "";
     }, 250);
+    if(isTiming && isInfinity){
+      setTiming(false)
+    }
   };
 
   const saveStampInfo = () => {
@@ -772,7 +890,7 @@ const Home = () => {
 
   const getStampPosition = stamp => {
     const progressBarWidth = document.getElementById("progress-bar").clientWidth;
-    return (progressBarWidth * (stamp.atTime / media.duration) || 0)
+    return media ? progressBarWidth * (stamp.atTime / media.duration) : 0
   }
 
   const onMouseOverStamp = index => () => {
@@ -973,6 +1091,17 @@ const Home = () => {
       <div className="footer" onMouseMove={onDragButton} onMouseUp={onBlurBar}>
         <div className="action-container">
           <div className="buttons">
+            <div className='add-timer-container' onClick={toggleTimer}>
+              {
+                playConfig.timer !== Infinity ?
+                  <span className="song-timer">{playConfig.timer}</span> :
+                  <MdTimer
+                    className="add-timer"
+                    fontSize={15}
+                    color={isTiming ? lightBlue : whiteSmoke}
+                  />
+              }
+            </div>
             <MdBookmarkAdd
               className="add-time-mark"
               fontSize={15}
@@ -1096,14 +1225,13 @@ const Home = () => {
       <div id="modal-container">
         <div className="modal-backdrop" onClick={onBackdropClick}/>
         <div className="modal">
-          <div className="m-description">Set a time stamp at {getDuration(stampInfo.atTime)}</div>
+          <div className="m-description">{isTiming ? "Stop after how many songs:" : `Set a time stamp at ${getDuration(stampInfo.atTime)}`}</div>
           <input
             type="text"
             name="ts-label"
             id="ts-label-input"
-            value={stampInfo.label}
-            onInput={onInputLabel}
-            onKeyDown={onSubmitStamp}
+            onInput={onInput}
+            onKeyDown={onSubmit}
           />
         </div>
       </div>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 /* eslint global-require: off, no-console: off, promise/always-return: off */
 
 /**
@@ -9,12 +10,15 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, globalShortcut, nativeImage, IpcMainEvent, TouchBar } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, globalShortcut, nativeImage, IpcMainEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { resolveHtmlPath } from './util';
 import fs from 'fs';
 import mm from 'musicmetadata';
+import { resolveHtmlPath } from './util';
+import initiateExpress, { emitTimeUpdate, setCurrentMedia, setCurrentPlaylist, setMainWindow, setPlayConfig, setPlaylists } from './app';
+
+const {exec} = require("child_process")
 
 class AppUpdater {
   constructor() {
@@ -25,12 +29,6 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
-
-ipcMain.on('ipc-example', async (event, arg) => {
-  const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-  console.log(msgTemplate(arg));
-  event.reply('ipc-example', msgTemplate('pong'));
-});
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -44,17 +42,22 @@ if (isDebug) {
   require('electron-debug')();
 }
 
-const getMedia = async (event: any, path: string) => {
-  let buffer = fs.readFileSync(path).buffer;
-  let stream = fs.createReadStream(path);
-  return new Promise((resolve, reject) => {
-    mm(stream, (err, metadata) => {
-      if(err){
-        resolve({ buffer, metadata: {} })
-      }else{
-        resolve({ buffer, metadata })
-      }
-    })
+const getMedia = async (event: any, localPath: string) => {
+  const stream = fs.createReadStream(localPath);
+  stream.on("data", data => {
+    if(mainWindow){
+      mainWindow.webContents.send("onMediaBuffer", { buffer: data, ended: false });
+    }
+  });
+  stream.on("end", () => {
+    if(mainWindow){
+      mainWindow.webContents.send("onMediaBuffer", { buffer: null, ended: true });
+    }
+  })
+  mm(stream, (err, metadata) => {
+    if(!err && mainWindow){
+      mainWindow.webContents.send("onMediaMetadata", metadata)
+    }
   })
 }
 
@@ -90,15 +93,15 @@ const createWindow = async () => {
   try {
     dimensions = JSON.parse(fs.readFileSync(D_File, "utf-8"))
   } catch (error) {
-
+    dimensions = { bounds: { width: 1000, height: 800 }}
   }
 
   mainWindow = new BrowserWindow({
     show: false,
     minWidth: 1000,
     minHeight: 800,
-    width: dimensions ? dimensions.bounds.width : 1000,
-    height: dimensions ? dimensions.bounds.height: 800,
+    width: dimensions.bounds.width,
+    height: dimensions.bounds.height,
     center: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
@@ -121,13 +124,15 @@ const createWindow = async () => {
     } else {
       mainWindow.show();
     }
+    initiateExpress()
+    setMainWindow(mainWindow)
   });
 
   mainWindow.on("close", () => {
-    const dimensions = {
+    const dims = {
       bounds: mainWindow?.getBounds()
     }
-    fs.writeFileSync(D_File, JSON.stringify(dimensions))
+    fs.writeFileSync(D_File, JSON.stringify(dims))
   })
 
   mainWindow.on('closed', () => {
@@ -157,24 +162,29 @@ app.on('window-all-closed', () => {
   }
 });
 
-const mediaChanged = (event: IpcMainEvent, isPlaying: boolean) => {
+const previousIcon = nativeImage.createFromPath("../../assets/previous.png")
+const nextIcon = nativeImage.createFromPath("../../assets/next.png")
+const pauseIcon = nativeImage.createFromPath("../../assets/pause.png")
+const playIcon = nativeImage.createFromPath("../../assets/play.png")
+
+const doAction = (event: IpcMainEvent, isPlaying: boolean) => {
   mainWindow?.setThumbarButtons([{
     tooltip: "previous",
-    icon: nativeImage.createFromPath("../../assets/previous.png"),
+    icon: previousIcon,
     click: () => {
-      mainWindow?.webContents.send("playNext");
+      mainWindow?.webContents.send("playPrevious");
     }
   }, {
     tooltip: "pause",
-    icon: isPlaying ? nativeImage.createFromPath("../../assets/pause.jpeg") : nativeImage.createFromPath("../../assets/play.png"),
+    icon: isPlaying ? pauseIcon : playIcon,
     click: () => {
       mainWindow?.webContents.send("togglePlay")
     }
   }, {
     tooltip: "next",
-    icon: nativeImage.createFromPath("../../assets/next.png"),
+    icon: nextIcon,
     click: () => {
-      mainWindow?.webContents.send("playPrevious")
+      mainWindow?.webContents.send("playNext")
     }
   }])
 }
@@ -183,8 +193,21 @@ const mediaChanged = (event: IpcMainEvent, isPlaying: boolean) => {
 app
   .whenReady()
   .then(() => {
-    ipcMain.handle("getMedia", getMedia);
-    ipcMain.on("mediaChanged", mediaChanged);
+    ipcMain.on("getMedia", getMedia);
+    ipcMain.on("doAction", doAction);
+    ipcMain.on("getPlaylist", setCurrentPlaylist);
+    ipcMain.on("getPlaylists", setPlaylists);
+    ipcMain.on("getCurrentMedia", setCurrentMedia);
+    ipcMain.on("getConfig", setPlayConfig);
+    ipcMain.on("turnOff", (e, state) => {
+      if(state === "shutdown"){
+        if(mainWindow) mainWindow.close()
+        exec("shutdown /s")
+      }else{
+        exec("rundll32.exe powrprof.dll, SetSuspendState Sleep");
+      }
+    })
+    ipcMain.on("onTimeUpdate", emitTimeUpdate);
 
     globalShortcut.register("Alt+.", () => {
       mainWindow?.webContents.send("playNext")
