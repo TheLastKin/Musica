@@ -197,7 +197,6 @@ const StyledDropzone = ({
   );
 };
 
-let buffer = [];
 let isAudioBarFocused = false;
 let isProgressBarFocused = false;
 let audioOffsetX = 0;
@@ -270,16 +269,6 @@ const Home = () => {
     }
     document.getElementById('media-player').onwebkitfullscreenchange = onExitFullscreen;
     window.electron.onMediaMetadata((e, m) => setMetadata(m))
-    window.electron.onMediaBuffer((e, data) => {
-      if(data?.ended){
-        let blob = new Blob(buffer);
-        let url = URL.createObjectURL(blob);
-        document.getElementById('media-player').src = url;
-        buffer = [];
-      }else{
-        buffer.push(data.buffer);
-      }
-    })
     window.electron.onRequestPlayNext((e) => {
       playNext(playlistRef.current, nextIndexRef.current, true);
     });
@@ -465,12 +454,14 @@ const Home = () => {
   const prepareMediaPlayer = async () => {
     if (media && !isLoading) {
       setLoading(true);
-      window.electron.getMedia(media.path);
+      window.electron.getCurrentMedia(media);
+      mediaPlayer.removeAttribute("src");
+      mediaPlayer.src = `http://192.168.1.5:3000/getStream/${nextIndex-1}`;
+      mediaPlayer.load();
       setLoading(false);
       if(playConfig.timer !== Infinity ){
         setPlayConfig({ ...playConfig, timer: playConfig.timer - 1 })
       }
-      window.electron.getCurrentMedia(media)
     }
   };
 
@@ -987,6 +978,7 @@ const Home = () => {
             <video
               style={{ display: isAudio(media) ? 'none' : 'block' }}
               id="media-player"
+              src="http://192.168.1.5:3000/getStream"
               onEnded={onMediaEnded}
               onTimeUpdate={onTimeUpdate}
               onPlay={onPlay}

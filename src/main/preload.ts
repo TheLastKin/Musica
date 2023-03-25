@@ -18,7 +18,6 @@ contextBridge.exposeInMainWorld('electron', {
       ipcRenderer.once(channel, (_event, ...args) => func(...args));
     }
   },
-  getMedia: (path: string) => ipcRenderer.send("getMedia", path),
   onMediaBuffer: (callback: any) => ipcRenderer.on("onMediaBuffer", callback),
   onMediaMetadata: (callback: any) => ipcRenderer.on("onMediaMetadata", callback),
   getPlaylist: (playlist: object) => ipcRenderer.send("getPlaylist", playlist),

@@ -42,25 +42,6 @@ if (isDebug) {
   require('electron-debug')();
 }
 
-const getMedia = async (event: any, localPath: string) => {
-  const stream = fs.createReadStream(localPath);
-  stream.on("data", data => {
-    if(mainWindow){
-      mainWindow.webContents.send("onMediaBuffer", { buffer: data, ended: false });
-    }
-  });
-  stream.on("end", () => {
-    if(mainWindow){
-      mainWindow.webContents.send("onMediaBuffer", { buffer: null, ended: true });
-    }
-  })
-  mm(stream, (err, metadata) => {
-    if(!err && mainWindow){
-      mainWindow.webContents.send("onMediaMetadata", metadata)
-    }
-  })
-}
-
 const installExtensions = async () => {
   const installer = require('electron-devtools-installer');
   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
@@ -193,7 +174,6 @@ const doAction = (event: IpcMainEvent, isPlaying: boolean) => {
 app
   .whenReady()
   .then(() => {
-    ipcMain.on("getMedia", getMedia);
     ipcMain.on("doAction", doAction);
     ipcMain.on("getPlaylist", setCurrentPlaylist);
     ipcMain.on("getPlaylists", setPlaylists);
