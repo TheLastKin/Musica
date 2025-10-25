@@ -7,7 +7,7 @@ const http = require("http")
 const server = http.createServer(app)
 const { Server } = require("socket.io")
 const io = new Server(server)
-const port = 3000;
+const port = 4000;
 
 let hasClient = false;
 let mainWindow = null;
@@ -71,33 +71,6 @@ export default function initiateExpress(){
 
   io.on("disconnect", () => {
     hasClient = false
-  })
-
-  app.get('/getStream/:id', (req, res) => {
-    if(currentMedia){
-      const range = req.headers.range;
-      if(!range){
-        res.status(400).send("Err")
-      }
-      const videoPath = currentMedia.path;
-      const videoSize = fs.statSync(videoPath).size
-      const chunkSize = 1 * 1e6;
-      const start = Number(range.replace(/\D/g, ""))
-      const end = Math.min(start + chunkSize, videoSize - 1)
-      const contentLength = end - start + 1;
-      const headers = {
-          "Content-Range": `bytes ${start}-${end}/${videoSize}`,
-          "Accept-Ranges": "bytes",
-          "Content-Length": contentLength,
-          "Content-Type": "video/mp4"
-      }
-      res.writeHead(206, headers)
-      const stream = fs.createReadStream(videoPath, {
-          start,
-          end
-      })
-      stream.pipe(res)
-    }
   })
 
   app.get('/changePlaylist/:index', (req, res) => {
@@ -211,7 +184,9 @@ export default function initiateExpress(){
     }
   })
 
-  server.listen(port, () => {
-    console.log(`Example app is listening on port ${port}`)
+  if(!server.listening){
+    server.listen(port, () => {
+      console.log(`Express server listening at http://localhost:${port}`)
   })
+  }
 }

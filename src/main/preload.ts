@@ -37,5 +37,6 @@ contextBridge.exposeInMainWorld('electron', {
   requestTurnOff: (callback: any) => ipcRenderer.on("requestTurnOff", callback),
   turnOff: (callback: any) => ipcRenderer.send("turnOff", callback),
   requestTimeUpdate: (callback: any) => ipcRenderer.on("requestTimeUpdate", callback),
-  onTimeUpdate: (time: number) => ipcRenderer.send("onTimeUpdate", time)
+  onTimeUpdate: (time: number) => ipcRenderer.send("onTimeUpdate", time),
+  setWifiIp: (callback: any) => ipcRenderer.on("setWifiIp", callback)
 });
