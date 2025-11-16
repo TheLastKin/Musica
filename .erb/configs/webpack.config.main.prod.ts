@@ -22,6 +22,8 @@ const configuration: webpack.Configuration = {
 
   target: 'electron-main',
 
+  externalsPresets: { node: true },
+
   entry: {
     main: path.join(webpackPaths.srcMainPath, 'main.ts'),
     preload: path.join(webpackPaths.srcMainPath, 'preload.ts'),
@@ -30,6 +32,12 @@ const configuration: webpack.Configuration = {
   output: {
     path: webpackPaths.distMainPath,
     filename: '[name].js',
+  },
+
+  externals: {
+    bindings: 'commonjs bindings',
+    'node-addon-api': 'commonjs node-addon-api',
+    'swift_addon': 'commonjs2 swift_addon',
   },
 
   optimization: {

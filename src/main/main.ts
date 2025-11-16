@@ -18,12 +18,12 @@ import {
   globalShortcut,
   nativeImage,
   IpcMainEvent,
+  screen
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import os from 'os';
 import fs from 'fs';
-import mm from 'musicmetadata';
 import { resolveHtmlPath } from './util';
 import initiateExpress, {
   emitTimeUpdate,
@@ -32,6 +32,7 @@ import initiateExpress, {
   setMainWindow,
   setPlayConfig,
   setPlaylists,
+  IPAddress,
 } from './app';
 
 import { exec } from 'child_process';
@@ -71,36 +72,24 @@ const installExtensions = async () => {
     .catch(console.log);
 };
 
-const nets = os.networkInterfaces();
-const getWifiIp = () => {
-  for (const name of Object.keys(nets)) {
-    if (!nets[name]) return '';
-    for (const net of nets[name]) {
-      if (net.family === 'IPv4' && !net.internal) {
-        return net.address;
-      }
-    }
-  }
-  return '';
+const RESOURCES_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, 'assets')
+  : path.join(__dirname, '../../assets');
+
+const getAssetPath = (...paths: string[]): string => {
+  return path.join(RESOURCES_PATH, ...paths);
 };
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
   }
-
-  const RESOURCES_PATH = app.isPackaged
-    ? path.join(process.resourcesPath, 'assets')
-    : path.join(__dirname, '../../assets');
 
   const USER_CONFIG_PATH = app.isPackaged
     ? os.platform() === 'win32'
       ? path.join(process.resourcesPath, 'assets')
       : path.join(os.homedir(), 'Library', 'User Data', app.getName(), 'config')
     : path.join(__dirname, 'assets');
-
-  const getAssetPath = (...paths: string[]): string => {
-    return path.join(RESOURCES_PATH, ...paths);
-  };
 
   const DIMENSION_FILE = path.join(USER_CONFIG_PATH, 'bounds.json');
 
@@ -124,8 +113,8 @@ const createWindow = async () => {
     show: false,
     minWidth: 1000,
     minHeight: 800,
-    width: dimensions.bounds.width,
-    height: dimensions.bounds.height,
+    width: Math.max(dimensions.bounds.width, 1000),
+    height: Math.max(dimensions.bounds.height, 800),
     center: true,
     icon: getAssetPath(os.platform() === 'win32' ? 'icon.png' : 'icon.icns'),
     webPreferences: {
@@ -151,7 +140,9 @@ const createWindow = async () => {
     }
     initiateExpress();
     setMainWindow(mainWindow);
-    mainWindow.webContents.send('setWifiIp', getWifiIp());
+    setTimeout(() => {
+      mainWindow?.webContents.send('getWifiIp', IPAddress);
+    }, 1000);
   });
 
   mainWindow.on('close', () => {
@@ -174,6 +165,14 @@ const createWindow = async () => {
   // Remove this if your app does not use auto updates
   // eslint-disable-next-line
   new AppUpdater();
+};
+
+let addon = require("swift_addon");
+
+const createWallpaperWindow = async (filePath: string, atTime: number) => {
+  if(addon && filePath.includes(".mp4")){
+    addon.spawnWindow(decodeURI(filePath.slice(7)), atTime + 0.15)
+  }
 };
 
 /**
@@ -228,6 +227,7 @@ const registerShortcuts = () => {
   });
   globalShortcut.register('Alt+/', () => {
     mainWindow?.webContents.send('togglePlay');
+    togglePlayWallpaper()
   });
   globalShortcut.register('Alt+=', () => {
     mainWindow?.webContents.send('increaseVolume');
@@ -236,6 +236,38 @@ const registerShortcuts = () => {
     mainWindow?.webContents.send('decreaseVolume');
   });
 };
+
+const validateFilePath = async (
+  e: Electron.IpcMainInvokeEvent,
+  filePath: string
+): Promise<boolean> => {
+  return fs.existsSync(filePath);
+};
+
+const projectAsWallpaper = (e: any, filePath: string, atTime: number) => {
+ createWallpaperWindow(filePath, atTime)
+}
+
+const removeWallpaper = () => {
+  if(addon) addon.closeWindow()
+}
+
+const togglePlayWallpaper = () => {
+  if(addon) addon.toggleVideo()
+}
+
+const animateWindow = (e: any, width: number, height: number) => {
+  if(mainWindow){
+    mainWindow.setMinimumSize(600, 94);
+    mainWindow.setMaximumSize(width, height);
+    mainWindow.setSize(width, height)
+    if(width === 1000 && height === 800){
+      mainWindow.setMinimumSize(width, height)
+      const primaryDisplay = screen.getPrimaryDisplay()
+      mainWindow.setMaximumSize(primaryDisplay.workAreaSize.width, primaryDisplay.workAreaSize.height)
+    }
+  }
+}
 
 app
   .whenReady()
@@ -254,6 +286,11 @@ app
       }
     });
     ipcMain.on('onTimeUpdate', emitTimeUpdate);
+    ipcMain.handle('validateFilePath', validateFilePath);
+    ipcMain.on('projectAsWallpaper', projectAsWallpaper);
+    ipcMain.on('removeWallpaper', removeWallpaper);
+    ipcMain.on('toggleVideo', togglePlayWallpaper);
+    ipcMain.on('animateWindow', animateWindow)
 
     registerShortcuts();
     globalShortcut.register('MediaNextTrack', () => {
@@ -272,6 +309,15 @@ app
       if (mainWindow === null) {
         registerShortcuts();
         createWindow();
+      }else{
+        if(!mainWindow.isVisible()){
+          mainWindow.setBounds(mainWindow.getBounds(), true);
+          mainWindow.focus();
+          mainWindow.hide();
+          setTimeout(() => {
+            mainWindow?.show();
+          }, 50);
+        }
       }
     });
   })

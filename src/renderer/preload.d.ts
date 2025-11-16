@@ -31,7 +31,12 @@ declare global {
       turnOff: (callback: any) => void;
       requestTimeUpdate: (callback: any) => void;
       onTimeUpdate: (time: number) => void;
-      setWifiIp: (callback: any) => void;
+      getWifiIp: (callback: any) => void;
+      validateFilePath: (filePath: string) => Promise<boolean>;
+      projectAsWallpaper: (filePath: string, atTime: number) => void;
+      removeWallpaper: () => void;
+      toggleVideo: () => void;
+      animateWindow: (width: number, height: number) => void;
     };
   }
 }

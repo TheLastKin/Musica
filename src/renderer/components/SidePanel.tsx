@@ -24,13 +24,6 @@ const SidePanel = ({
   showContextMenu
 }: SidePanelProps) => {
 
-  const handleKeyActivate = (e: React.KeyboardEvent, cb: () => void) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      cb();
-    }
-  };
-
     const moveToTimeStamp = (mark: TimeStamp) => () => {
     if(mark && media && mediaPlayer){
       mediaPlayer.currentTime = mark.atTime
@@ -60,7 +53,7 @@ const SidePanel = ({
               className="playlist-item"
               onClick={(e) => setPlaylist(p)}
               onContextMenu={showContextMenu('playlist', p, index)}
-              onKeyDown={(e) => handleKeyActivate(e, () => setPlaylist(p))}
+              onKeyDown={(e) => {}}
             >
               <div className="p-icon">
                 <RiPlayListFill fontSize={20} color="whitesmoke" />
@@ -92,7 +85,7 @@ const SidePanel = ({
                   onFocus={onMouseOverStamp(i)}
                   onMouseLeave={onMouseLeaveStamp(i)}
                   onContextMenu={showContextMenu('timestamp', playlist, i)}
-                  onKeyDown={(e) => handleKeyActivate(e, () => moveToTimeStamp(m)())}
+                  onKeyDown={(e) => {}}
                 >
                   <div className="ts-label">{m.note}</div>
                   <div className="ts-at-time">{getDuration(m.atTime)}</div>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { RiCloseFill, RiPlayListFill, RiSearch2Line } from 'react-icons/ri';
 import { VscClearAll } from 'react-icons/vsc';
-import { Playlist } from 'renderer/types/types';
+import { Media, Playlist } from 'renderer/types/types';
+import { BiTargetLock } from "react-icons/bi";
 
 type PlaylistHeaderProps = {
   playlist: Playlist;
@@ -12,6 +13,7 @@ type PlaylistHeaderProps = {
   getPlaylists: () => void;
   shuffledPlaylist: Playlist;
   clearPlaylist: () => void;
+  scrollToCurrentMedia: () => void;
 };
 
 const PlaylistHeader = ({
@@ -22,7 +24,8 @@ const PlaylistHeader = ({
   setPlaylist,
   setShuffledPlaylist,
   getPlaylists,
-  clearPlaylist
+  clearPlaylist,
+  scrollToCurrentMedia
 }: PlaylistHeaderProps) => {
   const onSearchingMedia = (e: React.ChangeEvent<HTMLInputElement>) =>
     setSearchQuery(e.target.value);
@@ -46,7 +49,7 @@ const PlaylistHeader = ({
 
   return (
     <div className="playlist-name-container">
-      <RiPlayListFill fontSize={20} color="whitesmoke" /> ``
+      <RiPlayListFill fontSize={20} color="whitesmoke" />
       <div id="hidden-name">{playlist.name}</div>
       <input
         // autoFocus={false}
@@ -76,6 +79,12 @@ const PlaylistHeader = ({
           color="whitesmoke"
         />
       </div>
+      <BiTargetLock
+        className='to-current-media'
+        fontSize={20}
+        color="whitesmoke"
+        onClick={scrollToCurrentMedia}
+      />
       <VscClearAll
         className="clear-playlist"
         fontSize={20}

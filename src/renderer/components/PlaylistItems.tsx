@@ -1,7 +1,8 @@
 import React from 'react';
 import { MdAudiotrack, MdOutlineMusicVideo } from 'react-icons/md';
 import { getDuration, getMediaName, isAudio } from 'renderer/constant/utils';
-import { Media, Playlist } from 'renderer/types/types';
+import { Media } from 'renderer/types/types';
+import { IoWarningOutline } from "react-icons/io5";
 
 type PlaylistItemsProps = {
   medias: Media[];
@@ -42,11 +43,14 @@ const PlaylistItems = ({ medias, isCurrentMedia, changeMedia, nextMedia, showCon
                 }}
                 className="i-media-name"
                 onClick={changeMedia(media)}
-                onKeyDown={nextMedia}
+                onKeyDown={() => {}}
               >
                 {getMediaName(media.name)}
               </div>
-              <div className="i-duration">{getDuration(media.duration)}</div>
+              <span style={{ display: 'flex', alignItems: 'center' }}>
+                <div className="i-duration">{getDuration(media.duration)}</div>
+              {media.pathValid === false && <IoWarningOutline fontSize={18} color="orange" style={{marginLeft: '5px'}} />}
+              </span>
             </div>
           </li>
         ))}

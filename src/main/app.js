@@ -1,5 +1,6 @@
 import { ipcMain } from "electron"
 import fs from "fs"
+import os from "os"
 
 const express = require("express")
 const app = express()
@@ -51,13 +52,29 @@ function setMainWindow(mw){
   mainWindow = mw
 }
 
+const nets = os.networkInterfaces();
+const getWifiIp = () => {
+  for (const name of Object.keys(nets)) {
+    if (!nets[name]) return '';
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '';
+};
+
+const IPAddress = getWifiIp()
+
 export {
   setCurrentPlaylist,
   setCurrentMedia,
   setMainWindow,
   setPlaylists,
   setPlayConfig,
-  emitTimeUpdate
+  emitTimeUpdate,
+  IPAddress
 }
 
 export default function initiateExpress(){
@@ -184,9 +201,13 @@ export default function initiateExpress(){
     }
   })
 
+  app.get('/ping', (req, res) => {
+    res.status(200).send(200)
+  })
+
   if(!server.listening){
     server.listen(port, () => {
-      console.log(`Express server listening at http://localhost:${port}`)
+      console.log(`Express server listening at http://${IPAddress}:${port}`)
   })
   }
 }

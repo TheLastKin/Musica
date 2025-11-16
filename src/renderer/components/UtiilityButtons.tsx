@@ -1,21 +1,29 @@
-import React from 'react';
+/* eslint-disable react-hooks/exhaustive-deps */
+import React, { useEffect, useState } from 'react';
 import { BsLayoutSidebar } from 'react-icons/bs';
 import { IoExpand } from 'react-icons/io5';
 import { RiPictureInPictureFill } from 'react-icons/ri';
-import { whiteSmoke } from 'renderer/constant/colors';
+import { green, whiteSmoke } from 'renderer/constant/colors';
 
 type UtiilityButtonsProps = {
   isAudio: boolean;
   mediaPlayer: HTMLMediaElement | null;
+  isProjecting: boolean;
+  toggleProjectAsWallpaper: () => void;
 };
 
-const UtiilityButtons = ({ isAudio, mediaPlayer }: UtiilityButtonsProps) => {
-  const requestFullScreen = () => {
-    mediaPlayer?.requestFullscreen().then(() => {
-      mediaPlayer.controls = true;
-      return true;
-    });
-  };
+const UtiilityButtons = ({
+  isAudio,
+  mediaPlayer,
+  isProjecting,
+  toggleProjectAsWallpaper,
+}: UtiilityButtonsProps) => {
+  // const requestFullScreen = () => {
+  //   mediaPlayer?.requestFullscreen().then(() => {
+  //     mediaPlayer.controls = true;
+  //     return true;
+  //   });
+  // };
 
   const requestPIP = () => {
     if (!mediaPlayer) return;
@@ -34,26 +42,33 @@ const UtiilityButtons = ({ isAudio, mediaPlayer }: UtiilityButtonsProps) => {
   };
 
   return (
-    <span style={{ display: isAudio ? 'none' : 'inline' }}>
-      <RiPictureInPictureFill
-        className="p-i-p"
-        fontSize={20}
-        color={whiteSmoke}
-        onClick={requestPIP}
-      />
-      <BsLayoutSidebar
-        className="expand"
-        fontSize={18}
-        color={whiteSmoke}
-        onClick={toggleExpand}
-      />
+    <div
+      className="utility-buttons"
+      style={{ display: isAudio ? 'none' : 'inline' }}
+    >
+      {!isProjecting && (
+        <>
+          <RiPictureInPictureFill
+            className="p-i-p"
+            fontSize={20}
+            color={whiteSmoke}
+            onClick={requestPIP}
+          />
+          <BsLayoutSidebar
+            className="expand"
+            fontSize={18}
+            color={whiteSmoke}
+            onClick={toggleExpand}
+          />
+        </>
+      )}
       <IoExpand
         className="fullscreen"
         fontSize={20}
-        color={whiteSmoke}
-        onClick={requestFullScreen}
+        color={isProjecting ? green : whiteSmoke}
+        onClick={toggleProjectAsWallpaper}
       />
-    </span>
+    </div>
   );
 };
 

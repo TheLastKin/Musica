@@ -2,6 +2,7 @@ type Media = {
     name: string,
     path: string,
     duration: number,
+    pathValid?: boolean
 }
 type Playlist = {
     name: string,

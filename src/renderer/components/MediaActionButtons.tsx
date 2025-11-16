@@ -76,6 +76,7 @@ const MediaActionButtons = ({
     } else {
       mediaPlayer.play();
     }
+    window.electron.toggleVideo()
   };
 
   const toggleAddTimeMark = () => setAddingTimeMark(!isAddingTimeMark);
@@ -99,7 +100,7 @@ const MediaActionButtons = ({
         tabIndex={-3}
         className="add-timer-container"
         onClick={toggleTimer}
-        onKeyDown={toggleTimer}
+        onKeyDown={(e) => {}}
       >
         {playConfig.timer !== Infinity ? (
           <span className="song-timer">{playConfig.timer}</span>

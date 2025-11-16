@@ -2,9 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './home.scss';
 import { TbLayoutSidebarLeftCollapse } from 'react-icons/tb';
-import {
-  RiPlayListAddLine,
-} from 'react-icons/ri';
+import { RiPlayListAddLine } from 'react-icons/ri';
 import StyledDropzone from 'renderer/components/StyledDropzone';
 import { Media, Playlist, TimeStamp } from 'renderer/types/types';
 import { isAudio } from 'renderer/constant/utils';
@@ -12,11 +10,13 @@ import SidePanel from 'renderer/components/SidePanel';
 import MediaDisplay from 'renderer/components/MediaDisplay';
 import PlaylistHeader from 'renderer/components/PlaylistHeader';
 import PlaylistItems from 'renderer/components/PlaylistItems';
-import { lightBlue, whiteSmoke } from 'renderer/constant/colors';
+import { green, lightBlue, whiteSmoke } from 'renderer/constant/colors';
 import MediaActionButtons from 'renderer/components/MediaActionButtons';
 import ProgressBar from 'renderer/components/ProgressBar';
 import UtiilityButtons from 'renderer/components/UtiilityButtons';
 import Modal from 'renderer/components/Modal';
+import { FaWifi } from 'react-icons/fa';
+import ExtraInfos from 'renderer/components/ExtraInfos';
 
 let isAudioBarFocused = false;
 let isProgressBarFocused = false;
@@ -55,6 +55,7 @@ const Home = () => {
     note: '',
   });
   const [timeStamps, setTimeStamps] = useState([]);
+  const [isProjecting, setProjecting] = useState<boolean>(false);
 
   const nextIndex = useMemo(
     () =>
@@ -71,24 +72,30 @@ const Home = () => {
   const playlistsRef = useRef<Playlist[]>([]);
   const configRef = useRef<any>();
   const mediaPlayer = useRef<HTMLMediaElement | null>(null);
+  const isProjectingRef = useRef<boolean>(false);
   playlistsRef.current = playlists;
   playlistRef.current = shuffledPlaylist;
   nextIndexRef.current = nextIndex;
   configRef.current = playConfig;
+  isProjectingRef.current = isProjecting;
 
   useEffect(() => {
-    mediaPlayer.current!! = document.getElementById('media-player') as HTMLMediaElement;
+    mediaPlayer.current = document.getElementById(
+      'media-player'
+    ) as HTMLMediaElement;
     getPlaylists();
-    if (localStorage.getItem('user-config')) {
-      const config = JSON.parse(localStorage.getItem('user-config') as string);
-      setPlayConfig({ ...config, timer: Infinity });
-      mediaPlayer.current!!.volume = config.audioValue;
-      document.getElementById('audio-button')!.style.left = `${
-        config.audioValue * 100
-      }%`;
-      document.getElementById('audio-fill')!.style.width = `${
-        config.audioValue * 100
-      }%`;
+    const config = JSON.parse(localStorage.getItem('user-config') as string);
+    if (config) {
+      setTimeout(() => {
+        setPlayConfig({ ...config, timer: Infinity });
+        mediaPlayer.current!.volume = config.audioValue;
+        document.getElementById('audio-button')!.style.left = `${
+          config.audioValue * 100
+        }%`;
+        document.getElementById('audio-fill')!.style.width = `${
+          config.audioValue * 100
+        }%`;
+      }, 500);
     }
     mediaPlayer.current!!.onfullscreenchange = onExitFullscreen as any;
     // mediaPlayer.current!!.addEventListener("fullscreenchange", onExitFullscreen)
@@ -107,10 +114,16 @@ const Home = () => {
       }
     });
     window.electron.onDecreaseVolume((e: any) => {
-      mediaPlayer.current!!.volume = Math.max(mediaPlayer.current!!.volume - 0.1, 0);
+      mediaPlayer.current!!.volume = Math.max(
+        mediaPlayer.current!!.volume - 0.1,
+        0
+      );
     });
     window.electron.onIncreaseVolume((e: any) => {
-      mediaPlayer.current!!.volume = Math.min(mediaPlayer.current!!.volume + 0.1, 1);
+      mediaPlayer.current!!.volume = Math.min(
+        mediaPlayer.current!!.volume + 0.1,
+        1
+      );
     });
     window.electron.chooseMedia((e: any, index: number) => {
       playNext(playlistRef.current, index, true);
@@ -147,7 +160,7 @@ const Home = () => {
     window.electron.requestTimeUpdate((e: any) => {
       window.electron.onTimeUpdate(mediaPlayer.current!!.currentTime);
     });
-    window.electron.setWifiIp((e: any, ip: string) => {
+    window.electron.getWifiIp((e: any, ip: string) => {
       setWifi(ip);
     });
     navigator.mediaSession.setActionHandler('seekto', (data: any) => {
@@ -162,6 +175,14 @@ const Home = () => {
       playNext(playlistRef.current, nextIndexRef.current - 1);
     });
     setLauched(true);
+    mediaPlayer.current.addEventListener('seeking', () => {
+      if (isProjectingRef.current === true && mediaPlayer.current) {
+        window.electron.projectAsWallpaper(
+          mediaPlayer.current.src,
+          mediaPlayer.current.currentTime
+        );
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -221,6 +242,38 @@ const Home = () => {
     }
   }, [metadata]);
 
+  useEffect(() => {
+    shrinkWindow();
+  }, [isProjecting]);
+
+  const shrinkWindow = () => {
+    if (!media) return;
+    const contentBody = document.querySelector('#body') as HTMLElement;
+    const contentFooter = document.querySelector('.footer') as HTMLElement;
+    const tracker = document.querySelector('.action-container') as HTMLElement;
+    if (isProjecting) {
+      contentBody.classList.add('body-minimized');
+      contentFooter.classList.add('footer-minimized');
+      tracker.classList.add("action-container-side");
+      const tick = () => {
+        const rect = contentBody.getBoundingClientRect();
+        window.electron.animateWindow(
+          Math.max(Math.round(rect.width), 600),
+          Math.max(Math.round(rect.height), 94)
+        );
+        if (rect.height !== 0) {
+          requestAnimationFrame(tick);
+        }
+      };
+      requestAnimationFrame(tick);
+    } else {
+      contentBody.classList.remove('body-minimized');
+      contentFooter.classList.remove('footer-minimized');
+      tracker.classList.remove("action-container-side");
+      window.electron.animateWindow(1000, 800);
+    }
+  };
+
   const updateScrollPosition = () => {
     if (media && searchQuery.length === 0) {
       const index = shuffledPlaylist.medias
@@ -245,25 +298,44 @@ const Home = () => {
   };
 
   const prepareMediaPlayer = async () => {
-    if (mediaPlayer.current! && media && !isLoading) {
+    if (mediaPlayer.current && media && !isLoading) {
       setLoading(true);
       window.electron.getCurrentMedia(media);
-      mediaPlayer.current!.removeAttribute('src');
-      // mediaPlayer.current!.src = `http://${wifi}:4000/getStream/${nextIndex - 1}`;
-      mediaPlayer.current!.src = `file://${playlistRef.current.medias[nextIndex-1].path}`
-      mediaPlayer.current!.load();
+      mediaPlayer.current.removeAttribute('src');
+      let source = `file://${playlistRef.current.medias[nextIndex - 1].path}`;
+      mediaPlayer.current.src = source;
+      mediaPlayer.current.load();
       setLoading(false);
       if (playConfig.timer !== Infinity) {
         setPlayConfig({ ...playConfig, timer: playConfig.timer - 1 });
       }
+      if (isProjecting) {
+        window.electron.projectAsWallpaper(source, 0);
+      }
     }
   };
 
-  const getPlaylists = () => {
+  const getPlaylists = async () => {
     if (localStorage.getItem('playlists')) {
-      const pls = JSON.parse(localStorage.getItem('playlists') as string);
-      setPlaylists(pls);
-      window.electron.getPlaylists(pls);
+      let playlists = JSON.parse(
+        localStorage.getItem('playlists') as string
+      ) as Playlist[];
+      const validatedPlaylists: Playlist[] = [];
+      for (const p of playlists) {
+        const validatedMedias: Media[] = [];
+        for (const m of p.medias) {
+          const isValid = await window.electron.validateFilePath(m.path);
+          if (isValid) {
+            validatedMedias.push({ ...m, pathValid: true });
+          } else {
+            validatedMedias.push({ ...m, pathValid: false });
+          }
+        }
+        validatedPlaylists.push({ ...p, medias: validatedMedias });
+      }
+      playlists = validatedPlaylists;
+      setPlaylists(playlists);
+      window.electron.getPlaylists(playlists);
     }
   };
 
@@ -272,7 +344,8 @@ const Home = () => {
     index: number,
     forcePlayNext = false
   ) => {
-    if (playlist.medias.length === 0 || isLoading || !mediaPlayer.current!) return;
+    if (playlist.medias.length === 0 || isLoading || !mediaPlayer.current!)
+      return;
 
     if (playConfig.timer === 0 && !forcePlayNext) {
       clearTimer();
@@ -378,7 +451,8 @@ const Home = () => {
       ),
       0
     );
-    mediaPlayer.current!.currentTime = (mediaPlayer.current!.duration * progressValue) / 100;
+    mediaPlayer.current!.currentTime =
+      (mediaPlayer.current!.duration * progressValue) / 100;
     window.electron.onTimeUpdate(mediaPlayer.current!.currentTime);
   };
 
@@ -438,18 +512,6 @@ const Home = () => {
     return media?.name === mediaName;
   };
 
-  const toggleSidePanel = () => {
-    const panel = document.getElementById('side-panel') as HTMLElement;
-    const mainInfo = document.getElementById('main-info') as HTMLElement;
-    if (panel.className === 'hide-side-panel') {
-      panel.className = '';
-      mainInfo.className = '';
-    } else {
-      panel.className = 'hide-side-panel';
-      mainInfo.className = 'expand-main-info';
-    }
-  };
-
   const hideContextMenu = () => {
     document.getElementById('context-menu')!.style.display = 'none';
   };
@@ -479,7 +541,7 @@ const Home = () => {
 
   const removeMedia = (mediaName: string) => {
     let newPlaylists: Playlist[] = JSON.parse(
-      localStorage.getItem('newPlaylists') as string
+      localStorage.getItem('playlists') as string
     ) as Playlist[];
     const newPlaylist = {
       ...playlist,
@@ -542,6 +604,21 @@ const Home = () => {
       };
     };
 
+  const toggleProjectAsWallpaper = () => {
+    if (!media) return;
+    if (isProjecting) {
+      window.electron.removeWallpaper();
+    } else {
+      if (mediaPlayer.current) {
+        window.electron.projectAsWallpaper(
+          mediaPlayer.current.src,
+          mediaPlayer.current.currentTime
+        );
+      }
+    }
+    setProjecting(!isProjecting);
+  };
+
   return (
     <div id="container">
       <div id="body" onClick={hideContextMenu}>
@@ -578,6 +655,7 @@ const Home = () => {
               setShuffledPlaylist={setShuffledPlaylist}
               getPlaylists={getPlaylists}
               clearPlaylist={clearPlaylist}
+              scrollToCurrentMedia={updateScrollPosition}
             />
             <StyledDropzone
               currentPlaylist={playlist}
@@ -622,13 +700,13 @@ const Home = () => {
             onFocusProgressBar={onFocusProgressBar}
           />
         </div>
-        <UtiilityButtons isAudio={isAudio(media)} mediaPlayer={mediaPlayer.current} />
-        <TbLayoutSidebarLeftCollapse
-          className="collapse-side-panel"
-          fontSize={22}
-          color={whiteSmoke}
-          onClick={toggleSidePanel}
+        <UtiilityButtons
+          isAudio={isAudio(media)}
+          mediaPlayer={mediaPlayer.current}
+          isProjecting={isProjecting}
+          toggleProjectAsWallpaper={toggleProjectAsWallpaper}
         />
+        <ExtraInfos wifi={wifi} mediaName={media?.name || ""} isProjecting={isProjecting}/>
       </div>
       <Modal
         media={media}

@@ -38,5 +38,10 @@ contextBridge.exposeInMainWorld('electron', {
   turnOff: (callback: any) => ipcRenderer.send("turnOff", callback),
   requestTimeUpdate: (callback: any) => ipcRenderer.on("requestTimeUpdate", callback),
   onTimeUpdate: (time: number) => ipcRenderer.send("onTimeUpdate", time),
-  setWifiIp: (callback: any) => ipcRenderer.on("setWifiIp", callback)
+  getWifiIp: (callback: any) => ipcRenderer.on("getWifiIp", callback),
+  validateFilePath: (filePath: string) => ipcRenderer.invoke("validateFilePath", filePath),
+  projectAsWallpaper: (filePath: string, atTime: number) => ipcRenderer.send("projectAsWallpaper", filePath, atTime),
+  removeWallpaper: () => ipcRenderer.send("removeWallpaper"),
+  toggleVideo: () => ipcRenderer.send("toggleVideo"),
+  animateWindow: (width: number, height: number) => ipcRenderer.send("animateWindow", width, height)
 });

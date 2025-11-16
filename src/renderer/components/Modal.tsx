@@ -96,7 +96,7 @@ const Modal = ({
           name="ts-label"
           id="ts-label-input"
           onInput={onInput}
-          onKeyDown={onSubmit}
+          onKeyDown={(e) => {}}
         />
       </div>
     </div>

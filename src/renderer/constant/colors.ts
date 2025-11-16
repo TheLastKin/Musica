@@ -2,4 +2,6 @@ const lightBlue = '#a5c0db';
 
 const whiteSmoke = 'whitesmoke';
 
-export { lightBlue, whiteSmoke };
+const green = 'rgba(71, 193, 79, 1)';
+
+export { lightBlue, whiteSmoke, green };
