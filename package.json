@@ -118,7 +118,7 @@
     "react-icons": "^4.4.0",
     "react-router-dom": "^6.3.0",
     "socket.io": "^4.5.4",
-    "swift_addon": "file:swift_addon"
+    "swift_addon": "file:src/main/swift_addon"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.10.2",
@@ -202,8 +202,7 @@
   "build": {
     "productName": "Musica",
     "appId": "org.erb.Musica",
-    "asar": true,
-    "asarUnpack": "**\\*.{node,dll}",
+    "asar": false,
     "files": [
       "dist",
       "node_modules",
@@ -282,13 +281,7 @@
       "packagerConfig": {
         "arch": "arm64",
         "icon": "assets/icon",
-        "asar": true,
-        "asarUnpack": [
-          "**/*.node"
-        ],
-        "extraResource": [
-          "./swift_addon/build/Release/swift_addon.node"
-        ]
+        "asar": false
       },
       "makers": [
         {

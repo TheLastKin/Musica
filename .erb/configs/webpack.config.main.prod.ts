@@ -3,7 +3,7 @@
  */
 
 import path from 'path';
-import webpack from 'webpack';
+import webpack, { NormalModuleReplacementPlugin } from 'webpack';
 import { merge } from 'webpack-merge';
 import TerserPlugin from 'terser-webpack-plugin';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
@@ -22,6 +22,8 @@ const configuration: webpack.Configuration = {
 
   target: 'electron-main',
 
+  module: { rules: [ { test: /\.node$/, use: 'native-ext-loader', }, ], },
+
   externalsPresets: { node: true },
 
   entry: {
@@ -35,9 +37,7 @@ const configuration: webpack.Configuration = {
   },
 
   externals: {
-    bindings: 'commonjs bindings',
-    'node-addon-api': 'commonjs node-addon-api',
-    'swift_addon': 'commonjs2 swift_addon',
+    swift_addon: 'commonjs swift_addon',
   },
 
   optimization: {

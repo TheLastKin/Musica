@@ -326,8 +326,8 @@ $(obj).$(TOOLSET)/%.o: $(obj)/%.S FORCE_DO_CMD
 
 ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
     $(findstring $(join ^,$(prefix)),\
-                 $(join ^,../node_modules/node-addon-api/nothing.target.mk)))),)
-  include ../node_modules/node-addon-api/nothing.target.mk
+                 $(join ^,../../../node_modules/node-addon-api/nothing.target.mk)))),)
+  include ../../../node_modules/node-addon-api/nothing.target.mk
 endif
 ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
     $(findstring $(join ^,$(prefix)),\
@@ -336,8 +336,8 @@ ifeq ($(strip $(foreach prefix,$(NO_LOAD),\
 endif
 
 quiet_cmd_regen_makefile = ACTION Regenerating $@
-cmd_regen_makefile = cd $(srcdir); /Users/nhatnguyen/Desktop/Programming/Musica/swift_addon/node_modules/node-gyp/gyp/gyp_main.py -fmake --ignore-environment "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0" "-Dnode_gyp_dir=/Users/nhatnguyen/Desktop/Programming/Musica/swift_addon/node_modules/node-gyp" "-Dnode_lib_file=/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0/<(target_arch)/node.lib" "-Dmodule_root_dir=/Users/nhatnguyen/Desktop/Programming/Musica/swift_addon" "-Dnode_engine=v8" "--depth=." "-Goutput_dir=." "--generator-output=build" -I/Users/nhatnguyen/Desktop/Programming/Musica/swift_addon/build/config.gypi -I/Users/nhatnguyen/Desktop/Programming/Musica/swift_addon/node_modules/node-gyp/addon.gypi -I/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0/include/node/common.gypi "--toplevel-dir=." binding.gyp
-Makefile: $(srcdir)/../../../../Library/Caches/node-gyp/24.9.0/include/node/common.gypi $(srcdir)/../node_modules/node-addon-api/node_api.gyp $(srcdir)/binding.gyp $(srcdir)/build/config.gypi $(srcdir)/node_modules/node-gyp/addon.gypi
+cmd_regen_makefile = cd $(srcdir); /Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon/node_modules/node-gyp/gyp/gyp_main.py -fmake --ignore-environment "-Dlibrary=shared_library" "-Dvisibility=default" "-Dnode_root_dir=/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0" "-Dnode_gyp_dir=/Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon/node_modules/node-gyp" "-Dnode_lib_file=/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0/<(target_arch)/node.lib" "-Dmodule_root_dir=/Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon" "-Dnode_engine=v8" "--depth=." "-Goutput_dir=." "--generator-output=build" -I/Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon/build/config.gypi -I/Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon/node_modules/node-gyp/addon.gypi -I/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0/include/node/common.gypi "--toplevel-dir=." binding.gyp
+Makefile: $(srcdir)/../../../../../../Library/Caches/node-gyp/24.9.0/include/node/common.gypi $(srcdir)/../../../node_modules/node-addon-api/node_api.gyp $(srcdir)/binding.gyp $(srcdir)/build/config.gypi $(srcdir)/node_modules/node-gyp/addon.gypi
 	$(call do_cmd,regen_makefile)
 
 # "all" is a concatenation of the "all" targets from all the included

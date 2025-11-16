@@ -10,10 +10,10 @@ class SwiftAddon extends EventEmitter {
     }
 
     let native;
-    if(app.isPackaged) {
-      native = require(process.resourcesPath + '/swift_addon.node');
+    if(app.isPackaged){
+      native = require("../build/Release/swift_addon.node");
     } else{
-      native = require("bindings")('swift_addon');
+      native = require("bindings")("swift_addon");
     }
     this.addon = new native.SwiftAddon();
   }

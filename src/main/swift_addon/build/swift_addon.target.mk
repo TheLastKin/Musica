@@ -38,7 +38,7 @@ action_binding_gyp_swift_addon_target_build_swift_outputs := build_swift/libSwif
 
 ### Rules for action "copy_swift_lib":
 quiet_cmd_binding_gyp_swift_addon_target_copy_swift_lib = ACTION binding_gyp_swift_addon_target_copy_swift_lib $@
-cmd_binding_gyp_swift_addon_target_copy_swift_lib = LD_LIBRARY_PATH=$(builddir)/lib.host:$(builddir)/lib.target:$$LD_LIBRARY_PATH; export LD_LIBRARY_PATH; cd $(srcdir)/.; mkdir -p $(builddir); sh -c "cp -f /Users/nhatnguyen/Desktop/Programming/Musica/swift_addon/build_swift/libSwiftCode.a $(builddir)/libSwiftCode.a && install_name_tool -id @rpath/libSwiftCode.a $(builddir)/libSwiftCode.a"
+cmd_binding_gyp_swift_addon_target_copy_swift_lib = LD_LIBRARY_PATH=$(builddir)/lib.host:$(builddir)/lib.target:$$LD_LIBRARY_PATH; export LD_LIBRARY_PATH; cd $(srcdir)/.; mkdir -p $(builddir); sh -c "cp -f /Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon/build_swift/libSwiftCode.a $(builddir)/libSwiftCode.a && install_name_tool -id @rpath/libSwiftCode.a $(builddir)/libSwiftCode.a"
 
 $(builddir)/libSwiftCode.a: obj := $(abs_obj)
 $(builddir)/libSwiftCode.a: builddir := $(abs_builddir)
@@ -60,7 +60,7 @@ $(builddir)/libSwiftCode.a: export TARGET_BUILD_DIR := ${abs_builddir}
 $(builddir)/libSwiftCode.a: export TEMP_DIR := ${TMPDIR}
 $(builddir)/libSwiftCode.a: export XCODE_VERSION_ACTUAL := 2601
 $(builddir)/libSwiftCode.a: TOOLSET := $(TOOLSET)
-$(builddir)/libSwiftCode.a: /Users/nhatnguyen/Desktop/Programming/Musica/swift_addon/build_swift/libSwiftCode.a FORCE_DO_CMD
+$(builddir)/libSwiftCode.a: /Users/nhatnguyen/Desktop/Programming/Musica/src/main/swift_addon/build_swift/libSwiftCode.a FORCE_DO_CMD
 	$(call do_cmd,binding_gyp_swift_addon_target_copy_swift_lib)
 
 all_deps += $(builddir)/libSwiftCode.a
@@ -206,25 +206,25 @@ $(OBJS): GYP_OBJCXXFLAGS := $(DEFS_$(BUILDTYPE)) $(INCS_$(BUILDTYPE))  $(CFLAGS_
 
 # Suffix rules, putting all outputs into $(obj).
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.mm FORCE_DO_CMD
-	@$(call do_cmd,objcxx,1)
-
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.m FORCE_DO_CMD
 	@$(call do_cmd,objc,1)
 
-# Try building from generated source, too.
-
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.mm FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(srcdir)/%.mm FORCE_DO_CMD
 	@$(call do_cmd,objcxx,1)
+
+# Try building from generated source, too.
 
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.m FORCE_DO_CMD
 	@$(call do_cmd,objc,1)
 
-$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.mm FORCE_DO_CMD
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj).$(TOOLSET)/%.mm FORCE_DO_CMD
 	@$(call do_cmd,objcxx,1)
 
 $(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.m FORCE_DO_CMD
 	@$(call do_cmd,objc,1)
+
+$(obj).$(TOOLSET)/$(TARGET)/%.o: $(obj)/%.mm FORCE_DO_CMD
+	@$(call do_cmd,objcxx,1)
 
 # End of this set of suffix rules
 ### Rules for final target.

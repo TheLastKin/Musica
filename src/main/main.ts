@@ -150,6 +150,7 @@ const createWindow = async () => {
       bounds: mainWindow?.getBounds(),
     };
     fs.writeFileSync(DIMENSION_FILE, JSON.stringify(dims));
+    removeWallpaper()
   });
 
   mainWindow.on('closed', () => {

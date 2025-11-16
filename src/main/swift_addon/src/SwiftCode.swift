@@ -6,9 +6,18 @@ extension NSWindow.Level {
     static let desktop = NSWindow.Level(rawValue: Int(CGWindowLevelForKey(.desktopWindow)))
 }
 
+class NoFocusWindow: NSWindow {
+    override var canBecomeKey: Bool {
+        return false
+    }
+    override var canBecomeMain: Bool {
+        return false
+    }
+}
+
 @objc public class SwiftCode: NSObject {
     private static var videoView: VideoView?
-    private static var window: NSWindow?
+    private static var window: NoFocusWindow?
     @objc public static func spawnWindow(_ filePath: String , time: Double) -> Void {
         DispatchQueue.main.async {
             if NSApp == nil {
@@ -22,7 +31,7 @@ extension NSWindow.Level {
             let frame = screen.frame
 
             if window == nil {
-                window = NSWindow(
+                window = NoFocusWindow(
                     contentRect: frame,
                     styleMask: .borderless,
                     backing: .buffered,
@@ -38,6 +47,7 @@ extension NSWindow.Level {
                     .ignoresCycle,
                     .transient
                 ]
+                window?.styleMask.insert(.nonactivatingPanel)
                 window?.hidesOnDeactivate = false
                 window?.canHide = false
                 window?.isMovable = false
@@ -45,13 +55,13 @@ extension NSWindow.Level {
                 window?.isReleasedWhenClosed = false
                 window?.makeKeyAndOrderFront(nil)
             }
-            NSApp.activate(ignoringOtherApps: true)
+            // NSApp.activate(ignoringOtherApps: true)
 
             if videoView == nil {
                 videoView = VideoView(frame: frame)
+                window?.contentView = videoView
             }
 
-            window?.contentView = videoView
             videoView?.playVideo(url: URL(fileURLWithPath: filePath), atTime: time)
 
         }
