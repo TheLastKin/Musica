@@ -755,15 +755,21 @@ $lightBlue: #a5c0db;
 .ts-item {
   position: relative;
   cursor: pointer;
-  display: flex;
   width: calc(100% - 10px);
   min-height: 30px;
   padding: 0px 5px 0px 5px;
-  align-items: center;
   border-bottom: 1px solid snow;
+  display: flex;
+}
+
+.ts-item > span {
+  display: flex;
+  align-items: center;
+  width: 100%;
 }
 
 .ts-label {
+  position: absolute;
   font-size: 14px;
 }
 
@@ -807,18 +813,18 @@ $lightBlue: #a5c0db;
   right: 40px;
   cursor: pointer;
 }
-.hosting-ip{
+.hosting-ip {
   position: relative;
   margin-left: 15px;
   font-size: 16px;
   color: rgba(71, 193, 79, 1);
   cursor: pointer;
 }
-.utility-buttons{
+.utility-buttons {
   position: absolute;
   right: 10px;
 }
-.name-roll{
+.name-roll {
   position: absolute;
   top: -20px;
   width: 100%;
@@ -826,7 +832,7 @@ $lightBlue: #a5c0db;
   height: 100%;
   flex-direction: row;
 }
-.name-roll span{
+.name-roll span {
   position: absolute;
   height: auto;
   white-space: nowarp;
@@ -834,15 +840,15 @@ $lightBlue: #a5c0db;
   // text-overflow: ellipsis;
   font-size: 14px;
 }
-.app-info{
+.app-info {
   position: relative;
   left: 0;
   transition: left 0.3s ease-out 0.4s;
 }
-.app-info-hide{
+.app-info-hide {
   left: -55px;
 }
-.name-roll-show{
+.name-roll-show {
   top: 0px;
   transition: top 0.3s linear 0.7s;
 }

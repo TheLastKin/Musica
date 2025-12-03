@@ -18,12 +18,13 @@ import {
   globalShortcut,
   nativeImage,
   IpcMainEvent,
-  screen
+  screen,
 } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import os from 'os';
 import fs from 'fs';
+import { exec } from 'child_process';
 import { resolveHtmlPath } from './util';
 import initiateExpress, {
   emitTimeUpdate,
@@ -34,8 +35,6 @@ import initiateExpress, {
   setPlaylists,
   IPAddress,
 } from './app';
-
-import { exec } from 'child_process';
 
 class AppUpdater {
   constructor() {
@@ -80,16 +79,30 @@ const getAssetPath = (...paths: string[]): string => {
   return path.join(RESOURCES_PATH, ...paths);
 };
 
+const addon = require('swift_addon');
+
+const removeWallpaper = () => {
+  if (addon) addon.closeWindow();
+};
+
+const togglePlayWallpaper = () => {
+  if (addon) addon.toggleVideo();
+};
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
   }
 
-  const USER_CONFIG_PATH = app.isPackaged
-    ? os.platform() === 'win32'
-      ? path.join(process.resourcesPath, 'assets')
-      : path.join(os.homedir(), 'Library', 'User Data', app.getName(), 'config')
-    : path.join(__dirname, 'assets');
+  let USER_CONFIG_PATH = path.join(__dirname, 'assets');
+
+  if (app.isPackaged) {
+    if (os.platform() === 'win32') {
+      USER_CONFIG_PATH = path.join(process.resourcesPath, 'assets');
+    } else {
+      path.join(os.homedir(), 'Library', 'User Data', app.getName(), 'config');
+    }
+  }
 
   const DIMENSION_FILE = path.join(USER_CONFIG_PATH, 'bounds.json');
 
@@ -150,7 +163,7 @@ const createWindow = async () => {
       bounds: mainWindow?.getBounds(),
     };
     fs.writeFileSync(DIMENSION_FILE, JSON.stringify(dims));
-    removeWallpaper()
+    removeWallpaper();
   });
 
   mainWindow.on('closed', () => {
@@ -168,11 +181,9 @@ const createWindow = async () => {
   new AppUpdater();
 };
 
-let addon = require("swift_addon");
-
 const createWallpaperWindow = async (filePath: string, atTime: number) => {
-  if(addon && filePath.includes(".mp4")){
-    addon.spawnWindow(decodeURI(filePath.slice(7)), atTime + 0.15)
+  if (addon && filePath.includes('.mp4')) {
+    addon.spawnWindow(decodeURI(filePath.slice(7)), atTime + 0.15);
   }
 };
 
@@ -228,7 +239,7 @@ const registerShortcuts = () => {
   });
   globalShortcut.register('Alt+/', () => {
     mainWindow?.webContents.send('togglePlay');
-    togglePlayWallpaper()
+    togglePlayWallpaper();
   });
   globalShortcut.register('Alt+=', () => {
     mainWindow?.webContents.send('increaseVolume');
@@ -246,29 +257,24 @@ const validateFilePath = async (
 };
 
 const projectAsWallpaper = (e: any, filePath: string, atTime: number) => {
- createWallpaperWindow(filePath, atTime)
-}
-
-const removeWallpaper = () => {
-  if(addon) addon.closeWindow()
-}
-
-const togglePlayWallpaper = () => {
-  if(addon) addon.toggleVideo()
-}
+  createWallpaperWindow(filePath, atTime);
+};
 
 const animateWindow = (e: any, width: number, height: number) => {
-  if(mainWindow){
+  if (mainWindow) {
     mainWindow.setMinimumSize(600, 94);
     mainWindow.setMaximumSize(width, height);
-    mainWindow.setSize(width, height)
-    if(width === 1000 && height === 800){
-      mainWindow.setMinimumSize(width, height)
-      const primaryDisplay = screen.getPrimaryDisplay()
-      mainWindow.setMaximumSize(primaryDisplay.workAreaSize.width, primaryDisplay.workAreaSize.height)
+    mainWindow.setSize(width, height);
+    if (width === 1000 && height === 800) {
+      mainWindow.setMinimumSize(width, height);
+      const primaryDisplay = screen.getPrimaryDisplay();
+      mainWindow.setMaximumSize(
+        primaryDisplay.workAreaSize.width,
+        primaryDisplay.workAreaSize.height
+      );
     }
   }
-}
+};
 
 app
   .whenReady()
@@ -291,7 +297,7 @@ app
     ipcMain.on('projectAsWallpaper', projectAsWallpaper);
     ipcMain.on('removeWallpaper', removeWallpaper);
     ipcMain.on('toggleVideo', togglePlayWallpaper);
-    ipcMain.on('animateWindow', animateWindow)
+    ipcMain.on('animateWindow', animateWindow);
 
     registerShortcuts();
     globalShortcut.register('MediaNextTrack', () => {
@@ -310,15 +316,13 @@ app
       if (mainWindow === null) {
         registerShortcuts();
         createWindow();
-      }else{
-        if(!mainWindow.isVisible()){
-          mainWindow.setBounds(mainWindow.getBounds(), true);
-          mainWindow.focus();
-          mainWindow.hide();
-          setTimeout(() => {
-            mainWindow?.show();
-          }, 50);
-        }
+      } else if (!mainWindow.isVisible()) {
+        mainWindow.setBounds(mainWindow.getBounds(), true);
+        mainWindow.focus();
+        mainWindow.hide();
+        setTimeout(() => {
+          mainWindow?.show();
+        }, 50);
       }
     });
   })

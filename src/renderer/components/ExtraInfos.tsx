@@ -11,6 +11,9 @@ type ExtraInfosType = {
   isProjecting: boolean;
 };
 
+let animations: Animation[] = [];
+let timeoutID: NodeJS.Timeout | number = -1;
+
 const ExtraInfos = ({ mediaName, wifi, isProjecting }: ExtraInfosType) => {
   const [showIPAddress, setShowIPAddress] = useState(false);
   const toggleShowIPAddress = () => setShowIPAddress(!showIPAddress);
@@ -45,20 +48,17 @@ const ExtraInfos = ({ mediaName, wifi, isProjecting }: ExtraInfosType) => {
       nameRoll.classList.add('name-roll-show');
       resetTextPosition(name1, '0px');
       resetTextPosition(name2, `${textWidth}px`);
-      setTimeout(() => {
+      if(timeoutID !== -1) clearInterval(timeoutID as NodeJS.Timeout);
+      timeoutID = setTimeout(() => {
         name1.style.transition = `left ${Math.min(
           12,
           textWidth / 50
-        )}s linear 0.8s`;
-        name2.style.transition = `left ${Math.min(
-          12 * 2,
-          (textWidth * 2) / 50
-        )}s linear 0.8s`;
+        )}s linear`;
+
         name1.style.left = `-${textWidth}px`;
-        name2.style.left = `-${textWidth}px`;
-        name1.ontransitionend = () => onAnimationEnd(name1);
-        name2.ontransitionend = () => onAnimationEnd(name2);
-      }, 200);
+        animateNameRoll(name2);
+        name1.ontransitionend = () => animateNameRoll(name1);
+      }, 800);
     } else {
       appInfo.classList.remove('app-info-hide');
       nameRoll.classList.remove('name-roll-show');
@@ -71,18 +71,23 @@ const ExtraInfos = ({ mediaName, wifi, isProjecting }: ExtraInfosType) => {
     target.style.transition = '';
     target.style.left = left;
     target.ontransitionend = null;
+    animations.forEach((animation) => animation.cancel());
+    animations = [];
   };
 
-  const onAnimationEnd = (target: HTMLElement) => {
-    resetTextPosition(target, `${textWidth}px`);
-    setTimeout(() => {
-      target.style.transition = `left ${Math.min(
-        12 * 2,
-        (textWidth * 2) / 50
-      )}s linear`;
-      target.style.left = `-${textWidth}px`;
-      target.ontransitionend = () => onAnimationEnd(target);
-    }, 100);
+  const animateNameRoll = (target: HTMLElement) => {
+    if (animations.length < 2) {
+      animations.push(
+        target.animate(
+          [{ left: `${textWidth}px` }, { left: `-${textWidth}px` }],
+          {
+            duration: Math.min(12 * 2, (textWidth * 2) / 50) * 1000,
+            easing: 'linear',
+            iterations: Infinity,
+          }
+        )
+      );
+    }
   };
 
   useEffect(() => {
@@ -106,13 +111,7 @@ const ExtraInfos = ({ mediaName, wifi, isProjecting }: ExtraInfosType) => {
       <div className="name-roll">
         <span style={{ width: `${textWidth}px` }}>{mediaName}</span>
         <span
-          style={{
-            width: `${textWidth}px`,
-            left: `${isProjecting ? textWidth * -1 : textWidth}px`,
-            transition: `left ${
-              isProjecting ? Math.max(32 * 2, (textWidth * 2) / 24) : 0
-            }s linear`,
-          }}
+          style={{ width: `${textWidth}px`}}
         >
           {mediaName}
         </span>

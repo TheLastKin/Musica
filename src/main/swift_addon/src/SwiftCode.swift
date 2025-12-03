@@ -39,7 +39,7 @@ class NoFocusWindow: NSWindow {
                     screen: screen
                 )
                 window?.isOpaque = false
-                window?.backgroundColor = NSColor.white
+                window?.backgroundColor = .clear
                 window?.level = .desktop
                 window?.collectionBehavior = [
                     .canJoinAllSpaces,
@@ -55,7 +55,6 @@ class NoFocusWindow: NSWindow {
                 window?.isReleasedWhenClosed = false
                 window?.makeKeyAndOrderFront(nil)
             }
-            // NSApp.activate(ignoringOtherApps: true)
 
             if videoView == nil {
                 videoView = VideoView(frame: frame)
@@ -70,6 +69,8 @@ class NoFocusWindow: NSWindow {
     @objc public static func closeWindow() -> Void {
         DispatchQueue.main.async {
             if window != nil {
+                videoView?.stopVideo()
+                videoView = nil
                 window?.orderOut(nil)
                 window?.close()
                 window = nil
@@ -93,6 +94,7 @@ class VideoView: NSView {
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         wantsLayer = true
+        layer?.backgroundColor = NSColor.white.cgColor
     }
 
     required init?(coder: NSCoder) {
@@ -103,29 +105,25 @@ class VideoView: NSView {
         if currentURL == url {
             player?.seek(to: CMTime(seconds: atTime, preferredTimescale: 600))
         }else {
-            player = AVPlayer(url: url)
-            let playerLayer = AVPlayerLayer(player: player)
-            playerLayer.frame = bounds
-            playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
-            playerLayer.videoGravity = .resizeAspectFill
-            layer?.addSublayer(playerLayer)
+            if player == nil {
+                player = AVPlayer(url: url)
+                player?.actionAtItemEnd = .none
+                player?.isMuted = true
+                let playerLayer = AVPlayerLayer(player: player)
+                playerLayer.frame = bounds
+                playerLayer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+                playerLayer.videoGravity = .resizeAspectFill
+                layer?.addSublayer(playerLayer)
+            } else {
+                let newItem = AVPlayerItem(url: url)
+                player?.replaceCurrentItem(with: newItem)
+            }
 
             let startTime = CMTime(seconds: atTime, preferredTimescale: 600)
             player?.seek(to: startTime)
-            player?.isMuted = true
-            player?.play()
-            player?.actionAtItemEnd = .none
-            currentURL = url
 
-            // Loop forever, because wallpapers don’t quit
-            NotificationCenter.default.addObserver(
-                forName: .AVPlayerItemDidPlayToEndTime,
-                object: player?.currentItem,
-                queue: .main
-            ) { [weak self] _ in
-                self?.player?.seek(to: .zero)
-                self?.player?.play()
-            }
+            player?.play()
+            currentURL = url
         }
     }
 
@@ -137,6 +135,13 @@ class VideoView: NSView {
                 p.play()
             }
         }
+    }
+
+    func stopVideo() {
+        player?.pause()
+        player = nil
+        currentURL = nil
+        layer?.sublayers?.forEach { $0.removeFromSuperlayer() }
     }
 }
 

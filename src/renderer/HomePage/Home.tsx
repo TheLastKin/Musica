@@ -97,8 +97,8 @@ const Home = () => {
         }%`;
       }, 500);
     }
-    mediaPlayer.current!!.onfullscreenchange = onExitFullscreen as any;
-    // mediaPlayer.current!!.addEventListener("fullscreenchange", onExitFullscreen)
+    mediaPlayer.current.onfullscreenchange = onExitFullscreen as any;
+    // mediaPlayer.current.addEventListener("fullscreenchange", onExitFullscreen)
     window.electron.onMediaMetadata((e: any, m: any) => setMetadata(m));
     window.electron.onRequestPlayNext((e: any) => {
       playNext(playlistRef.current, nextIndexRef.current, true);
@@ -107,21 +107,25 @@ const Home = () => {
       playNext(playlistRef.current, nextIndexRef.current - 2, true);
     });
     window.electron.onTogglePlay((e: any) => {
-      if (mediaPlayer.current!!.paused) {
-        mediaPlayer.current!!.play();
+      if (!mediaPlayer.current) return
+      if (mediaPlayer.current.paused) {
+        mediaPlayer.current.play();
       } else {
-        mediaPlayer.current!!.pause();
+        mediaPlayer.current.pause();
       }
+      window.electron.toggleVideo()
     });
     window.electron.onDecreaseVolume((e: any) => {
-      mediaPlayer.current!!.volume = Math.max(
-        mediaPlayer.current!!.volume - 0.1,
+      if (!mediaPlayer.current) return
+      mediaPlayer.current.volume = Math.max(
+        mediaPlayer.current.volume - 0.1,
         0
       );
     });
     window.electron.onIncreaseVolume((e: any) => {
-      mediaPlayer.current!!.volume = Math.min(
-        mediaPlayer.current!!.volume + 0.1,
+      if (!mediaPlayer.current) return
+      mediaPlayer.current.volume = Math.min(
+        mediaPlayer.current.volume + 0.1,
         1
       );
     });
@@ -132,8 +136,8 @@ const Home = () => {
       setPlaylist(playlistsRef.current[index]);
     });
     window.electron.seekTo((e: any, time: number) => {
-      if (mediaPlayer.current!!) {
-        mediaPlayer.current!!.currentTime = time;
+      if (mediaPlayer.current) {
+        mediaPlayer.current.currentTime = time;
       }
     });
     window.electron.changeTimer((e: any, type: string) => {
@@ -158,14 +162,14 @@ const Home = () => {
       }
     });
     window.electron.requestTimeUpdate((e: any) => {
-      window.electron.onTimeUpdate(mediaPlayer.current!!.currentTime);
+      window.electron.onTimeUpdate(mediaPlayer.current!.currentTime);
     });
     window.electron.getWifiIp((e: any, ip: string) => {
       setWifi(ip);
     });
     navigator.mediaSession.setActionHandler('seekto', (data: any) => {
-      if (mediaPlayer.current!!.src !== null) {
-        mediaPlayer.current!!.currentTime = data.seekTime;
+      if (mediaPlayer.current && mediaPlayer.current.src !== null) {
+        mediaPlayer.current.currentTime = data.seekTime;
       }
     });
     navigator.mediaSession.setActionHandler('nexttrack', () => {
@@ -364,6 +368,7 @@ const Home = () => {
     if (playConfig.repeat === 'repeat-one' && !forcePlayNext) {
       mediaPlayer.current!.currentTime = 0;
       mediaPlayer.current!.play();
+      window.electron.projectAsWallpaper(mediaPlayer.current.src, 0)
       return;
     }
 

@@ -502,7 +502,7 @@
     "v8_use_siphash": 1,
     "want_separate_host_toolset": 0,
     "nodedir": "/Users/nhatnguyen/Library/Caches/node-gyp/24.9.0",
-    "python": "/Applications/Xcode.app/Contents/Developer/usr/bin/python3",
+    "python": "/Volumes/MyData/Xcode.app/Contents/Developer/usr/bin/python3",
     "standalone_static_library": 1,
     "prefix": "/opt/homebrew",
     "user_agent": "npm/11.6.1 node/v24.9.0 darwin arm64 workspaces/false",

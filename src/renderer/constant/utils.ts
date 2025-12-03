@@ -1,4 +1,5 @@
 import { Media } from 'renderer/types/types';
+import "regenerator-runtime/runtime";
 
 const fh = (hours: number) => {
   if (hours < 10) {
@@ -22,10 +23,10 @@ const fs = (seconds: number) => {
 };
 
 const getDuration = (time: number) => {
-  if (time !== 0 && !isNaN(time)) {
-    const hours = parseInt((time / 3600).toString());
-    const minutes = parseInt(((time - hours * 3600) / 60).toString());
-    const seconds = parseInt(time.toString()) - 3600 * hours - minutes * 60;
+  if (time !== 0 && typeof(time) === "number") {
+    const hours = parseInt((time / 3600).toString(), 10);
+    const minutes = parseInt(((time - hours * 3600) / 60).toString(), 10);
+    const seconds = parseInt(time.toString(), 10) - 3600 * hours - minutes * 60;
     if (hours !== 0) {
       return `${fh(hours)}:${fm(minutes)}:${fs(seconds)}`;
     }
@@ -36,9 +37,9 @@ const getDuration = (time: number) => {
 
 const getTotalDuration = (medias: Media[]) => {
   let duration = 0;
-  for (const media of medias) {
+  medias.forEach((media) => {
     duration += media.duration;
-  }
+  });
   return getDuration(duration);
 };
 
@@ -48,8 +49,8 @@ const getMediaDuration = async (media: Blob | MediaSource) => {
     videoNode.addEventListener('loadedmetadata', () => {
       resolve(videoNode.duration);
     });
-    videoNode.addEventListener('error', () => {
-      reject(0);
+    videoNode.addEventListener('error', (err) => {
+      reject(new Error(`Failed to load media duration: ${err}`));
     });
   });
   videoNode.src = URL.createObjectURL(media);
