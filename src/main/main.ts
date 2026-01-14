@@ -25,6 +25,7 @@ import log from 'electron-log';
 import os from 'os';
 import fs from 'fs';
 import { exec } from 'child_process';
+import addon from 'swift_addon';
 import { resolveHtmlPath } from './util';
 import initiateExpress, {
   emitTimeUpdate,
@@ -78,8 +79,6 @@ const RESOURCES_PATH = app.isPackaged
 const getAssetPath = (...paths: string[]): string => {
   return path.join(RESOURCES_PATH, ...paths);
 };
-
-const addon = require('swift_addon');
 
 const removeWallpaper = () => {
   if (addon) addon.closeWindow();

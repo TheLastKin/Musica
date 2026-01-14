@@ -7,7 +7,12 @@ const app = express()
 const http = require("http")
 const server = http.createServer(app)
 const { Server } = require("socket.io")
-const io = new Server(server)
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"]
+  }
+})
 const port = 4000;
 
 let hasClient = false;
@@ -79,7 +84,7 @@ export {
 
 export default function initiateExpress(){
 
-  io.on("connection", () => {
+  io.on("connection", (socket) => {
     hasClient = true
     if(mainWindow){
       mainWindow.webContents.send('requestTimeUpdate');

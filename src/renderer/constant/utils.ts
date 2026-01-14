@@ -1,5 +1,4 @@
 import { Media } from 'renderer/types/types';
-import "regenerator-runtime/runtime";
 
 const fh = (hours: number) => {
   if (hours < 10) {

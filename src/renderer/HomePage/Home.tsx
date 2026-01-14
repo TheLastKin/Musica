@@ -1,7 +1,6 @@
 /* eslint-disable */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './home.scss';
-import { TbLayoutSidebarLeftCollapse } from 'react-icons/tb';
 import { RiPlayListAddLine } from 'react-icons/ri';
 import StyledDropzone from 'renderer/components/StyledDropzone';
 import { Media, Playlist, TimeStamp } from 'renderer/types/types';
@@ -10,12 +9,11 @@ import SidePanel from 'renderer/components/SidePanel';
 import MediaDisplay from 'renderer/components/MediaDisplay';
 import PlaylistHeader from 'renderer/components/PlaylistHeader';
 import PlaylistItems from 'renderer/components/PlaylistItems';
-import { green, lightBlue, whiteSmoke } from 'renderer/constant/colors';
+import { lightBlue } from 'renderer/constant/colors';
 import MediaActionButtons from 'renderer/components/MediaActionButtons';
 import ProgressBar from 'renderer/components/ProgressBar';
 import UtiilityButtons from 'renderer/components/UtiilityButtons';
 import Modal from 'renderer/components/Modal';
-import { FaWifi } from 'react-icons/fa';
 import ExtraInfos from 'renderer/components/ExtraInfos';
 
 let isAudioBarFocused = false;
@@ -107,23 +105,23 @@ const Home = () => {
       playNext(playlistRef.current, nextIndexRef.current - 2, true);
     });
     window.electron.onTogglePlay((e: any) => {
-      if (!mediaPlayer.current) return
+      if (!mediaPlayer.current) return;
       if (mediaPlayer.current.paused) {
         mediaPlayer.current.play();
       } else {
         mediaPlayer.current.pause();
       }
-      window.electron.toggleVideo()
+      window.electron.toggleVideo();
     });
     window.electron.onDecreaseVolume((e: any) => {
-      if (!mediaPlayer.current) return
+      if (!mediaPlayer.current) return;
       mediaPlayer.current.volume = Math.max(
         mediaPlayer.current.volume - 0.1,
         0
       );
     });
     window.electron.onIncreaseVolume((e: any) => {
-      if (!mediaPlayer.current) return
+      if (!mediaPlayer.current) return;
       mediaPlayer.current.volume = Math.min(
         mediaPlayer.current.volume + 0.1,
         1
@@ -258,7 +256,7 @@ const Home = () => {
     if (isProjecting) {
       contentBody.classList.add('body-minimized');
       contentFooter.classList.add('footer-minimized');
-      tracker.classList.add("action-container-side");
+      tracker.classList.add('action-container-side');
       const tick = () => {
         const rect = contentBody.getBoundingClientRect();
         window.electron.animateWindow(
@@ -273,7 +271,7 @@ const Home = () => {
     } else {
       contentBody.classList.remove('body-minimized');
       contentFooter.classList.remove('footer-minimized');
-      tracker.classList.remove("action-container-side");
+      tracker.classList.remove('action-container-side');
       window.electron.animateWindow(1000, 800);
     }
   };
@@ -368,7 +366,7 @@ const Home = () => {
     if (playConfig.repeat === 'repeat-one' && !forcePlayNext) {
       mediaPlayer.current!.currentTime = 0;
       mediaPlayer.current!.play();
-      window.electron.projectAsWallpaper(mediaPlayer.current.src, 0)
+      window.electron.projectAsWallpaper(mediaPlayer.current.src, 0);
       return;
     }
 
@@ -711,7 +709,11 @@ const Home = () => {
           isProjecting={isProjecting}
           toggleProjectAsWallpaper={toggleProjectAsWallpaper}
         />
-        <ExtraInfos wifi={wifi} mediaName={media?.name || ""} isProjecting={isProjecting}/>
+        <ExtraInfos
+          wifi={wifi}
+          mediaName={media?.name || ''}
+          isProjecting={isProjecting}
+        />
       </div>
       <Modal
         media={media}
